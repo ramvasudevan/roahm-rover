@@ -1,0 +1,30 @@
+- Follow coinbrew quickstart at coin-or.github.io/ipopt/INSTALL.html
+- Do something like the following
+    $ cd ~
+    $ mkdir Ipopt_home
+    $ cd Ipopt_home
+    $ mkdir coinbrew_master
+  Put the coinbrew script here
+    $ coinbrew-master/coinbrew fetch Ipopt
+    
+  - At this point install the HSL (Harwell Subroutines Library) (download from internet, need email link) to get access to better linear subsolvers. Unpack the file in Ipopt_home/ThirdParty/HSL and rename to coinhsl.
+    $ cd ThirdParty/HSL
+    $ ./configure
+    $ make
+    $ sudo make install
+    
+  - Finish up installing Ipopt. The HSL build will be skipped, which is what we want since we installed it separately.
+    $ cd ../
+    $ coinbrew-master/coinbrew build Ipopt
+    $ coinbrew-master/coinbrew install Ipopt
+    
+  - To link the libraries make sure the $LD_LIBRARY_PATH is correct
+  Do something like
+    $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH/home/nvidia/Ipopt_home/dist/lib/:/home/nvidia/Ipopt_home/ThirdParty/HSL/.libs
+    
+  - Then issue 
+    $ pip2 install --user ipopt
+    to install the cyipopt wrapper. You might have to make sure the cyipopt.c file from the coinbrew installation is visible on the LD_LIBRARY_PATH.
+
+
+

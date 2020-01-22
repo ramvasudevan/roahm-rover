@@ -1,0 +1,9 @@
+<!-- -*- mode: XML -*- -->
+<launch>
+  <arg name="rover_name" value="rover1" />
+  
+  <node name="rover_pose_global" pkg="autonomous_mode" type="cartographer_rover_converter.py" ns="$(arg rover_name)" />
+  
+    <node name="FRS_intersect_opt" pkg="autonomous_mode" type="FRS_intersect_opt.py" ns="$(arg rover_name)" output="screen" />
+    
+</launch>

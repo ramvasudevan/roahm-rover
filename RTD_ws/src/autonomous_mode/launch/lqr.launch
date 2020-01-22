@@ -1,0 +1,9 @@
+<!-- -*- mode: XML -*- -->
+<launch>
+  
+    
+    <node name="state_feedback_online_drive" pkg="autonomous_mode" type="state_feedback_online_drive.py" />
+    
+    <node name="lqr_control" pkg="autonomous_mode" type="lqr_control.py" />
+    
+</launch>

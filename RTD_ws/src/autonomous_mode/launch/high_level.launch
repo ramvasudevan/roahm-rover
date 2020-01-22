@@ -1,0 +1,8 @@
+<!-- -*- mode: XML -*- -->
+<launch>
+  
+  <node name="rover_pose_global" pkg="autonomous_mode" type="cartographer_rover_converter.py" />
+  
+    <node name="FRS_intersect_ipopt" pkg="autonomous_mode" type="FRS_intersect_ipopt.py" output="screen" />
+    
+</launch>
