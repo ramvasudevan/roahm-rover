@@ -12,7 +12,7 @@ O_FRS = [1 0 0 0.5 0.55 0.45;0 1 -0.2 0.06 0.02 -0.1];
 
 %% automated from here
 % load FRS
-load('rover_FRS_deg_10_matlab.mat') ; % You HAVE subtracted 1.
+load('full_parameter_space/rover_FRS_deg_10_matlab.mat') ; % You HAVE subtracted 1.
 
 %% create cost function
 % use waypoint to make cost function

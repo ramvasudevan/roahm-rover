@@ -9,6 +9,8 @@ h = 0.125; % match to python file
 t_f = 1.17; % from FRS mat file
 distance_scale = 2.89; % from FRS mat file
 dyn_scl = h*(t_f/distance_scale); % from FRS file mat t_f/dist_scale
+initial_x = -0.15;
+initial_y = 0;
 
 n = 1/h;
 for k = 1:n
@@ -18,5 +20,8 @@ for k = 1:n
     X_0 = X_0+dyn_scl*dX_0;
 	X_1 = X_1+dyn_scl*dX_1;
 end
+X_0 = X_0+initial_x;
+X_1 = X_1+initial_y;
+
 expr = (X_0-Zg_0)^2+(X_1-Zg_1)^2;
 rover_cost = matlabFunction(expr,'Vars',[k_0,k_1,Zg_0,Zg_1],'File','rover_cost');

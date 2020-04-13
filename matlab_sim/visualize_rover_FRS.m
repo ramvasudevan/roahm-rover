@@ -1,6 +1,6 @@
 %% user parameters
 % trajectory parameter to evaluate, try extremes to get a feel of FRS.
-k_eval = [0.65;-0.67] ;
+k_eval = [1;-1] ;
 
 %% automated from here
 % load timing
@@ -8,7 +8,7 @@ load('rover_timing.mat')
 
 % load FRSes
 
-FRS_ = load('mat_files/rover_FRS_prestruct_deg_10.mat') ;
+FRS_ = load('full_parameter_space/rover_FRS_prestruct_deg_10.mat') ;
         
 % get one h_Z0 to plot
 h_Z0 = FRS_.h_Z0 ;
@@ -29,7 +29,7 @@ T_ = 1;
 U0 = k(1)*k_scale(1) + k_const;
 U1 = k(2)*k_scale(2);
 
-% create w_des and v_des from k_eval
+% create delta and v from k_eval
 U_in = [full(msubs(U0,k,k_eval));full(msubs(U1,k,k_eval))] ;
 
 % create the desired trajectory
@@ -89,15 +89,15 @@ plot_2D_msspoly_contour_rover(I_z_8,z,1,'LineWidth',1.5,'Color',0.6*[0.1 1 0.3],
 
 % plot the highlighted trajectories
 % t_plan trajectory
-plot(init_x*distance_scale+Z_max(:,1),init_y+Z_max(:,2),'b','LineWidth',1.5);
+plot(init_x*distance_scale+Z_max(:,1),init_y*distance_scale+Z_max(:,2),'b','LineWidth',1.5);
 % braking trajectory
 plot(init_x*distance_scale+Z_max(end,1)+pos_rowformat_max(1,:)',...
-    init_y+Z_max(end,2)+pos_rowformat_max(2,:)','b--','LineWidth',1.5);
+    init_y*distance_scale+Z_max(end,2)+pos_rowformat_max(2,:)','b--','LineWidth',1.5);
 % t_plan trajectory
-plot(init_x*distance_scale+Z_min(:,1),init_y+Z_min(:,2),'k','LineWidth',1.5);
+plot(init_x*distance_scale+Z_min(:,1),init_y*distance_scale+Z_min(:,2),'k','LineWidth',1.5);
 % braking trajectory
 plot(init_x*distance_scale+Z_min(end,1)+pos_rowformat_min(1,:)',...
-    init_y+Z_min(end,2)+pos_rowformat_min(2,:)','k--','LineWidth',1.5);
+    init_y*distance_scale+Z_min(end,2)+pos_rowformat_min(2,:)','k--','LineWidth',1.5);
 
 % plot the agent
 plot(init_x*distance_scale+([-len len len -len -len]/2),...

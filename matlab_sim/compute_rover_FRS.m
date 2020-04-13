@@ -44,8 +44,8 @@ z0 = zeros(2,1);
 dx = max(Z(:,1)) - min(Z(:,1)) + rover_length ;
 dy = max(Z(:,2)) - min(Z(:,2)) + rover_width ;
 distance_scale = max(dx,dy) ;
-initial_x =  -0.15 ;
-initial_y =  0.0 ;
+initial_x =  -0.2 ;
+initial_y =  0;
 
 
 %% set up the FRS computation variables and dynamics
@@ -61,22 +61,21 @@ x = z(1) ; y = z(2) ;
 % defining them as semi-algebraic sets
 Z_range = [-1, 1 ; -1, 1] ; % z \in [-1,1]^2
 
-K_range = [-1, 1 ; -1, 1] ; % k \in [-1,1]^2
+K_range = [-1, -0.2 ; -1, 1] ; % k \in [-1,1]^2
 
 h_Z = (z - Z_range(:,1)).*(Z_range(:,2) - z) ;
 
 scl_x = (rover_length/2)/distance_scale;
 scl_y = (rover_width/2)/distance_scale;
-% h_Z0 = 1 - ((x - initial_x)/(scl_x)).^2 + ...
-%          - ((y - initial_y)/(scl_y)).^2 ;
      
 h_Z0 = [(x-initial_x)+scl_x ;... 
         -(x-initial_x)+scl_x ;...   
         (y-initial_y)+scl_y;...
         -(y-initial_y)+scl_y]; 
-% z0 positive on box footprint, centered at initial position- approximated by ellipse 
+    
+% z0 positive on box footprint, centered at initial position
 
-h_K = (k - K_range(:,1)).*(K_range(:,2) - k) ;
+h_K = (k - K_range(:,1)).*(K_range(:,2) - k);
 
 
 %% Specify dynamics and error function
@@ -124,13 +123,13 @@ FRS_polynomial = solver_output.indicator_function ;
 FRS_lyapunov_function = solver_output.lyapunov_function ;
 
 % save!
-    save(['mat_files/rover_FRS_prestruct_deg_',num2str(degree)],'FRS_polynomial',...
+    save(['temp_files/rover_FRS_prestruct_deg_',num2str(degree)],'FRS_polynomial',...
         'FRS_lyapunov_function','t','z','k',...
         'time_scale','distance_scale','initial_x','initial_y',...
         'rover_width','rover_length','f','g','initial_x','initial_y','t_f',...
         't_plan','t_stop','degree','h_Z','h_Z0','h_K','k_scale','k_const','wb')
     
-FRS = load(['mat_files/rover_FRS_prestruct_deg_',num2str(degree)]);
+FRS = load(['temp_files/rover_FRS_prestruct_deg_',num2str(degree)]);
 
 % get FRS polynomial and variables
 if formatlab
@@ -145,7 +144,7 @@ z = FRS.z ;
 FRS_poly = get_FRS_polynomial_structure(FRS_msspoly,z,k) ;
 
 if formatlab
-    save(['rover_FRS_deg_',num2str(degree),'_matlab'],'FRS_poly');
+    save(['temp_files/rover_FRS_deg_',num2str(degree),'_matlab'],'FRS_poly');
 else
     FRS_poly.coef = FRS_poly.coef';
     FRS_poly.dist_scale = distance_scale;
@@ -182,7 +181,7 @@ else
     box_FRS = FRS_poly.box_FRS;
     clear FRS_poly;
 
-    save(['rover_FRS_deg_',num2str(degree)])
+    save(['temp_files/rover_FRS_deg_',num2str(degree)])
 end
 
        
