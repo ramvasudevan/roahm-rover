@@ -6,6 +6,7 @@
 3. RTD_ws
     * RTD (Reachability Based Trajectory Design) ROS workspace.
     * `FRS_intersect_ipopt.py` implements the online RTD pipeline.
+    * Before running RTD with a new FRS, `lambdafun_constr.py` should be run. If the objective function in the online optimization changed, also run `lambdafun.py`.
 4. matlab_sim
     * offline matlab code specific to the ROAHM lab rover used to generate and validate the FRS (Forward Reachable Set) loaded at runtime. This code should be run in the code base at https://github.com/skousik/RTD_tutorial.
 
