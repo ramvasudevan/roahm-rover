@@ -48,7 +48,7 @@ def tf_callback(translation, rotation):
 
     # Make the message.
     rover_pose_msg = RoverPoseGlobalStamped()
-    rover_pose_msg.header = Header(stamp=rospy.Time.now(), frame_id='base_imu_link')
+    rover_pose_msg.header = Header(stamp=rospy.Time.now(), frame_id='base_link')
     rover_pose_msg.x = x_pos
     rover_pose_msg.y = y_pos
     rover_pose_msg.psi = psi_global
@@ -83,11 +83,11 @@ if __name__ == '__main__':
         # rospy.wait_for_service('spawn')
         # spaw
 
-        rate = rospy.Rate(25)
+        rate = rospy.Rate(15)
 
         while not rospy.is_shutdown():
             try:
-                (trans, rot) = tf_listener.lookupTransform('map', 'base_imu_link', rospy.Time(0))
+                (trans, rot) = tf_listener.lookupTransform('map', 'base_link', rospy.Time(0))
 
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
 

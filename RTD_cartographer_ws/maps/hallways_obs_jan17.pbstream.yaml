@@ -1,0 +1,7 @@
+image: /home/nvidia/RTD_cartographer_ws/maps/hallways_obs_jan17.pbstream.pgm
+resolution: 0.100000
+origin: [-22.048767, -15.496747, 0.000000]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+

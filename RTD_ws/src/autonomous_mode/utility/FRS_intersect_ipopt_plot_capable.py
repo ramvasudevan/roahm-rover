@@ -18,6 +18,7 @@ import sys
 import rospy
 from std_msgs.msg import Header
 from nav_msgs.msg import OccupancyGrid
+from nav_msgs.msg import Odometry
 from ackermann_msgs.msg import AckermannDriveStamped
 from autonomous_mode.msg import TrajStamped
 from autonomous_mode.msg import RoverPoseGlobalStamped
@@ -34,7 +35,7 @@ import math
 #   the RTD pipeline
 #------------------------------------------------------------------------------
 
-def MSG_TIME(msg1=None,msg2=None,msg3=None):
+def MSG_TIME(msg1=None,msg2=None,msg3=None,msg4=None):
     #
     #   Print to std out is msg1 given
     #
@@ -53,6 +54,7 @@ def MSG_TIME(msg1=None,msg2=None,msg3=None):
         print '            Number of constraints:',msg3
     elif type(msg3) is tuple:
 	print '           ',['%.3f' % k for k in msg3]
+	print '           ',['%.3f' % k for k in msg4]
     elif type(msg3) is np.ndarray:
         print '            Control commands:',msg3
         print '- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -'
@@ -151,7 +153,7 @@ def obs_map_2_FRS(x,y,pose):
     R = np.array([[np.cos(pose[2]),np.sin(pose[2])],
         [-np.sin(pose[2]),np.cos(pose[2])]])
     pose_frs = (1/dist_scale)*np.matmul(R,pose_xy)
-    return [pose_frs[1],pose_frs[0]]
+    return [pose_frs[0]+initial_x,-pose_frs[1]+initial_y]
 
 
 def k_FRS_2_map(k):
@@ -169,10 +171,7 @@ def cart_rover_global_2_map():
     #   Get pose into map frame. Additionally 
     #   get velocity estimate.
     #
-    vel_est = min(np.sqrt(np.power(pose_raw.x-pose_raw_prev.x,2)+\
-	np.power(pose_raw.y-pose_raw_prev.y,2))/(1/pose_rate),2)
-
-    return (pose_raw.x,-pose_raw.y,-pose_raw.psi-np.pi,vel_est)
+    return (pose_raw.x,-pose_raw.y,-pose_raw.psi,vel_est)
 	
 
 #------------------------------------------------------------------------------
@@ -227,13 +226,18 @@ def solver_opt_k_FRS(solver_obj):
             lb=k_lb,ub=k_ub,cl=c_lb,cu=c_ub)
 
     #   Below are ADJUSTABLE*********************************************
+    t_opt = 0.07          #   Min time alloted to do optimization. If less than this time 
+                          #   before t_plan will not do optimization.
+    t_latency = 0.12      #   Unusable time at the end of the planning period to 
+			  #   account for latency. This time is subtracted from 
+			  #   the computed optimization time allowed.
+    nlp.addOption('tol',0.1)
+    nlp.addOption('acceptable_iter',4)
+    nlp.addOption('acceptable_tol',0.1)
+    nlp.addOption('linear_solver','ma97')
                           #   Options specific to Ipopt.
                           #   See online documentation 
                           #   for a description of all options
-    nlp.addOption('tol',0.1)
-    nlp.addOption('acceptable_iter',4)
-    nlp.addOption('acceptable_tol',0.25)
-    nlp.addOption('linear_solver','ma97')
     if solver_print_:
         nlp.addOption('print_level',3)
     else:
@@ -247,15 +251,20 @@ def solver_opt_k_FRS(solver_obj):
 	brake = True
     else:
         #   Call solver	  
-	nlp.addOption('max_cpu_time',round(t_plan-t_j_to_now-0.03,2)) 
-        (result,result_info) = nlp.solve([0,0])
+	#   Initial point likely to be feasible
+	nlp.addOption('max_cpu_time',max(0.02,round(t_plan-t_j_to_now-t_latency,2))) 
+        (result,result_info) = nlp.solve([-1,0]) 
 
 	#   Check status since latency can cause time beyond t_opt
-	if rospy.get_time()-t_j > t_plan or \
-	    not (result_info['status'] == 0 or result_info['status'] == 1):
+	#   Allow suboptimal solution that satisifies constraint violation
+	if rospy.get_time()-t_j > t_plan:
 	    brake = True
-        else:
+	elif (result_info['status'] == 0 or result_info['status'] == 1):
 	    brake = False
+	elif result_info['status'] == -4 and solver_obj.constr_viol < 1e-3:
+	    brake = False
+        else:
+	    brake = True
 
     if brake == True:
 	result = [-float(k_const)/k_scale[0],opt_result[1]]
@@ -274,7 +283,7 @@ def algorithm_main(oc):
     #   This function processes the occupancy grid from the environment
     #   and produces a trajectory to track.
     #
-    global oc_box_xy,tpoints_traj_push,pose_future,ts_h,t_opt,Z_FRS_goal,Z_h_roverinit
+    global oc_box_xy,tpoints_traj_push,pose_future,ts_h,Z_FRS_goal,Z_h_roverinit
 
     MSG_TIME(print_)
 
@@ -293,22 +302,21 @@ def algorithm_main(oc):
     oc_buffer = 1           #   Distance in grid points for the buffer. 
                             #   For example oc_buffer=1 registers the 8 surrounding 
                             #   grid points as occupied.
-    t_opt = 0.1             #   Min time alloted to do optimization. If less than this time 
-                            #   before t_plan will not do optimization.
     oc_box_size = 4.0       #   Centered box area side length, (m), to register occupied 
 		            #   grid points
-    oc_1 = 40               #   Confidence level criteria of oc grid point 0(none)-100(max)
+    oc_1 = 60               #   Confidence level criteria of oc grid point 0(none)-100(max)
     ts_h = 0.05             #   Time step for ref traj generation and future pose
                  	    #   calculation with high fid dynamics
     #   End ADJUSTABLE***************************************************
     
     #   Estimate future pose of rover and form box to evaluate obstacles
     #   Calculate future pose at t_plan elapsed time
-    displ = rover_dynamics.flowf('high','no_record',[0,0,0,pose_init[3]],
+    displ = rover_dynamics.flowf('low','no_record',[0,0,0,pose_init[3]],
         [0,t_plan],ts_h)
     pose_future = np.array([pose_init[0],pose_init[1],0,0])+\
 	rover_dynamics.roverinit_2_map(displ,pose_init[2])
-    MSG_TIME(print_,'- - **Poses calculated, current pose is**',pose_init)
+    MSG_TIME(print_,'- - **Poses calculated, current pose and xy goal**',
+	pose_init,Z_map_goal)
 
     #   Only looking at the occupancy grid in a conservative box area around
     #   the pose of rover will further reduce the computation time.
@@ -376,7 +384,7 @@ def traj_publisher(Z):
     global t_j
 
     traj_msg = TrajStamped()
-    traj_msg_header = Header(stamp=rospy.Time.now(),frame_id='base_imu_link')
+    traj_msg_header = Header(stamp=rospy.Time.now(),frame_id='base_link')
     traj_msg.ref_traj = Z.flatten()
     traj_msg.ref_size = np.size(Z[:,0],0) 
     traj_msg.Ts = ts_h;
@@ -403,9 +411,8 @@ def callback_pose(pose):
     #
     #   This function gathers the pose from the environment
     #
-    global pose_raw,pose_raw_prev
+    global pose_raw
 
-    pose_raw_prev = pose_raw
     pose_raw = pose
 
 def callback_goal(goal):
@@ -415,6 +422,14 @@ def callback_goal(goal):
     global Z_map_goal
 
     Z_map_goal = goal.data
+
+def callback_odom(odom):
+    #    
+    #   Calculate vx 
+    #
+    global vel_est
+
+    vel_est = abs(np.cos(rover_dynamics.U[1]))*odom.twist.twist.linear.x
 
 #------------------------------------------------------------------------------
 #   Main
@@ -436,7 +451,7 @@ if __name__ == '__main__':
         tpoints_traj_push = 0
 	Z_h_roverinit = np.zeros((1,6))
 	cur_oc = None
-	pose_rate = 50.0
+	pose_rate = 15.0
 	opt_result = [0,0]
 
         #   Load FRS data structure
@@ -496,7 +511,7 @@ if __name__ == '__main__':
 	#   NOTE the lambda functions as found in the rover_dynamics class
         #   are FRS specific for fast runtime
         rover_dynamics = rover_dynamics()
-	rover_dynamics.pass_coeff(c,wb,(t_f/dist_scale))
+	rover_dynamics.pass_coeff(c,wb,(t_f/dist_scale),dist_scale)
         rover_dynamics.setup()
 
 	#   Publications to ros topics
@@ -504,6 +519,10 @@ if __name__ == '__main__':
 
         #   Subscriptions to ros topics.
 	#   Wait for enough info before proceeding to algorithm_main.
+
+	vesc_sub = rospy.Subscriber('/vesc/odom',Odometry,callback_odom)
+	rospy.wait_for_message('/vesc/odom',Odometry)
+
         grid_sub = rospy.Subscriber('map',OccupancyGrid,callback_oc)
 	rospy.wait_for_message('map',OccupancyGrid)
 

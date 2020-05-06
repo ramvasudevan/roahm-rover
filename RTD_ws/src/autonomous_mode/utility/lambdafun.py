@@ -8,6 +8,8 @@
 # Author of this script: Steven van Leeuwen (svanlee@umich.edu)
 #------------------------------------------------------------------------------
 
+# NOTE This script needs to be rerun when the cost function changes. 
+
 import numpy as np
 import sympy as syp
 import numpy as np
@@ -22,7 +24,7 @@ def obs_map_2_FRS(x,y,pose):
     R = np.array([[np.cos(pose[2]),np.sin(pose[2])],
         [-np.sin(pose[2]),np.cos(pose[2])]])
     pose_frs = (1/dist_scale)*np.matmul(R,pose_xy)
-    return (pose_frs[1],pose_frs[0])
+    return (pose_frs[0],-pose_frs[1])
 
 class lambdafun:
     #
@@ -59,7 +61,7 @@ class lambdafun:
         self.U = U_in
 
 
-    def setup_pregen_flowf_l(self,tpoints,h,k_scl,jac):
+    def setup_pregen_flowf_l(self,tpoints,h,k_scl,jac,initial_x,initial_y):
         #
         #   Use the symbolic toolbox to generate expression for final endpoint
         #   of a trajectory, and then convert the symbolic expression to 
@@ -78,13 +80,23 @@ class lambdafun:
             dX_1 = w*X_0
             X_0 = X_0+dyn_scl*dX_0
 	    X_1 = X_1+dyn_scl*dX_1
+	X_0 = X_0+initial_x
+	X_1 = X_1+initial_y
         expr = (X_0-Zg_0)**2+(X_1-Zg_1)**2
-        self.pregen_flowf_l = syp.lambdify([k_0,k_1,Zg_0,Zg_1],expr,'numpy')
+        self.pregen_flowf_l = syp.lambdify([k_0,k_1,Zg_0,Zg_1],expr)
 	if jac == 'jac':
 	    expr_jac0 = syp.diff(expr,k_0)
 	    expr_jac1 = syp.diff(expr,k_1)
-            self.pregen_flowf_jac0_l = syp.lambdify([k_0,k_1,Zg_0,Zg_1],expr_jac0,'numpy')
-	    self.pregen_flowf_jac1_l = syp.lambdify([k_0,k_1,Zg_0,Zg_1],expr_jac1,'numpy')
+            expr_hess00 = syp.diff(expr_jac0,k_0)
+            expr_hess01 = syp.diff(expr_jac0,k_1)
+            expr_hess10 = syp.diff(expr_jac1,k_0)
+            expr_hess11 = syp.diff(expr_jac1,k_1)
+            self.pregen_flowf_jac0_l = syp.lambdify([k_0,k_1,Zg_0,Zg_1],expr_jac0)
+	    self.pregen_flowf_jac1_l = syp.lambdify([k_0,k_1,Zg_0,Zg_1],expr_jac1)
+            self.pregen_flowf_hess00_l = syp.lambdify([k_0,k_1,Zg_0,Zg_1],expr_hess00)
+	    self.pregen_flowf_hess01_l = syp.lambdify([k_0,k_1,Zg_0,Zg_1],expr_hess01)
+            self.pregen_flowf_hess10_l = syp.lambdify([k_0,k_1,Zg_0,Zg_1],expr_hess10)
+	    self.pregen_flowf_hess11_l = syp.lambdify([k_0,k_1,Zg_0,Zg_1],expr_hess11)
     
 
 myfun = lambdafun()
@@ -92,21 +104,25 @@ c = [1.6615e-05,-1.9555e-07,3.619e-06,4.3820e-07,-0.0811,-1.4736,0.1257,0.0765,-
 wb = 0.32
 t_f = 1.17
 dist_scale = 2.89
+initial_x = -0.15
+initial_y = 0
 
 myfun.pass_coeff(c,wb,(t_f/dist_scale),dist_scale)
 
-ts_l = 0.1
+ts_l = 0.125
 T = 1
 k_scale = [1,0.34]
 
-myfun.setup_pregen_flowf_l([0,T],ts_l,k_scale,'jac')
+myfun.setup_pregen_flowf_l([0,T],ts_l,k_scale,'jac',initial_x,initial_y)
 
 dill.settings['recurse'] = True
 dill.dump(myfun.pregen_flowf_l,open('lambda_cost_l','wb'))
 dill.dump(myfun.pregen_flowf_jac0_l,open('lambda_cost_jac0_l','wb'))
 dill.dump(myfun.pregen_flowf_jac1_l,open('lambda_cost_jac1_l','wb'))
-
-
+dill.dump(myfun.pregen_flowf_hess00_l,open('lambda_cost_hess00_l','wb'))
+dill.dump(myfun.pregen_flowf_hess01_l,open('lambda_cost_hess01_l','wb'))
+dill.dump(myfun.pregen_flowf_hess10_l,open('lambda_cost_hess10_l','wb'))
+dill.dump(myfun.pregen_flowf_hess11_l,open('lambda_cost_hess11_l','wb'))
 
 
     

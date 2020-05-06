@@ -30,6 +30,7 @@ class solver_obj():
         self.k_cols = np.zeros(np.size(w_k),dtype=int)
         self.cnt = 0
 	self.goal = [0,0]
+	self.constr_viol = 1.0
 
 
     #---------------------------------------------------------------------
@@ -56,18 +57,21 @@ class solver_obj():
         self.c = self.c[range(self.cnt),:]
         self.c_tmp0 = self.c_tmp0[range(self.cnt),:]
         self.c_tmp1 = self.c_tmp1[range(self.cnt),:]
-        jac_ind0 = np.where(self.p[:,:,self.k_cols[0]]-1 >= 0)
-        jac_ind1 = np.where(self.p[:,:,self.k_cols[1]]-1 >= 0)
+        self.c_tmp00 = self.c_tmp0[range(self.cnt),:]
+        self.c_tmp01 = self.c_tmp1[range(self.cnt),:]
+        self.c_tmp11 = self.c_tmp1[range(self.cnt),:]
+        m1_ind0 = np.where(self.p[:,:,self.k_cols[0]]-1 >= 0)
+        m1_ind1 = np.where(self.p[:,:,self.k_cols[1]]-1 >= 0)
         self.c_tmp0 = 0*self.c_tmp0
 	self.c_tmp1 = 0*self.c_tmp1	
-        self.c_tmp0[jac_ind0] = self.c[jac_ind0]
-        self.c_tmp1[jac_ind1] = self.c[jac_ind1]
+        self.c_tmp0[m1_ind0] = self.c[m1_ind0]
+        self.c_tmp1[m1_ind1] = self.c[m1_ind1]
 	self.jac_return = np.zeros((self.cnt,2))
 
 
     def constraints(self,k):
         #
-        #   Constraint function callable 
+        #   Constraint function callable
         #
         p = self.p
         c = self.c
@@ -84,7 +88,6 @@ class solver_obj():
         #   Jacobian of constraint function callable
         #
         p = self.p
-        c = self.c
         k_cols = self.k_cols
 	c_tmp0 = self.c_tmp0
 	c_tmp1 = self.c_tmp1	
@@ -128,6 +131,20 @@ class solver_obj():
 	#   Set the goal in the objective and gradient function
 	#
 	self.goal = goal
+
+
+    #---------------------------------------------------------------------
+    #   Function evaluated at every iteration
+    #---------------------------------------------------------------------
+
+    def intermediate(self,alg_mod,iter_count,obj_value,inf_pr,inf_du,mu,d_norm,
+	regularization_size,alpha_du,alpha_pr,ls_trials):
+        #
+        #   Hold onto the inf_pr and check if acceptable if solver returns 
+	#   suboptimal. 
+        #
+	self.constr_viol = inf_pr
+
 
 
 

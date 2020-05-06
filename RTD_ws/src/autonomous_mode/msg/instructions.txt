@@ -1,0 +1,24 @@
+
+|------------------------------|
+|FRS_intersect_ipopt.py        |
+|pass_ref_to_traj_to_low_RTD   |
+|------------------------------|
+        |
+traj_to_low_RTD (TrajStamped)
+        |
+        |---------------------------------------|
+        |                                       | 
+|------------------------------|            |-----------------------|
+|open_loop_control.py (drives) |            |  lqr_control.py       |
+|pi_control.py (drives)        |            |-----------------------|
+|------------------------------|                |
+                                                |
+                                             traj_drive (TrajControlStamped)
+                                                |
+                                                |
+                                            |-------------------------------------------|
+                                            |  state_feedback_online_drive.py (drives)  |
+					    |-------------------------------------------|
+
+
+

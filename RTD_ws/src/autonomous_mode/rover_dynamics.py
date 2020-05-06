@@ -107,11 +107,19 @@ class rover_dynamics:
         #
         #   Evaluate derivative of state at passed in X and current U
         #
-        dX = np.zeros(2)
+	c = self.c
+	U = self.U
+        dX = np.zeros(4)
 
         w = U[0]*U[1]/self.wb
         dX[0] = U[0]-(w*X[1])
         dX[1] = w*X[0]
+
+	# These are technically not part of the low-fidelity model
+	# but included as no other model for psi and vel propogation
+        dX[2] = (np.tan(c[0]*U[1]+c[1])*X[3])/(c[2]+c[3]*X[3]**2)
+        dX[3] = c[4]+c[5]*(X[3]-U[0])+c[6]*(X[3]-U[0])**2  
+
         return dX
 
 
@@ -172,7 +180,7 @@ class rover_dynamics:
         #   Convert a pose from the roverinit frame, given the map psi value, 
 	#   to the map frame.
         #
-        H = np.array([[np.cos(psi),np.sin(psi)],[np.sin(psi),-np.cos(psi)]])
+        H = np.array([[np.cos(psi),np.sin(psi)],[-np.sin(psi),np.cos(psi)]])
 	xy_map = np.matmul(H,np.array([X[0],X[1]]))
 	X_map = np.array([xy_map[0],xy_map[1],psi-X[2],X[3]])
 	return X_map

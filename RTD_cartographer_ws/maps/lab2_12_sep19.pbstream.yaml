@@ -1,0 +1,7 @@
+image: /home/nvidia/cartographer_ws/maps/lab2_12_sep19.pbstream.pgm
+resolution: 0.020000
+origin: [-6.533414, -5.590000, 0.000000]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+

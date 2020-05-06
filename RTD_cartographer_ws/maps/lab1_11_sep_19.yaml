@@ -1,0 +1,7 @@
+image: /home/nvidia/cartographer_ws/maps/lab1_11_sep_19.pgm
+resolution: 0.500000
+origin: [-5.026648, -12.349999, 0.000000]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+

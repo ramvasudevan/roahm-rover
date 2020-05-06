@@ -24,6 +24,10 @@ def callback_traj(Z):
     # Decrease deadzone 
     if abs(u[0]) < 0.5:
 	u[0] = u[0]+0.2
+
+    # decrease steering bias
+    #if abs(u[1]) < 0.1:
+    #    u[1] = u[1]-0.05
 	
 
 def nav_publisher(u):
